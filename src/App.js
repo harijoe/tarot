@@ -108,6 +108,7 @@ function App() {
   return (
     <div className={classes.outwrapper}>
       <div className={classes.wrapper}>
+        <h1>Score tarot</h1>
         <div className={classes.header}>
           <Button
             color="secondary"
