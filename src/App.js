@@ -1,6 +1,5 @@
-import "./App.css";
 import Swal from "sweetalert2";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Button,
   Table,
@@ -10,9 +9,15 @@ import {
   TableHead,
   TableBody,
   TableRow,
+  IconButton,
 } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import RondeButton from "./RondeButton";
+import VisibilityIcon from "@material-ui/icons/Visibility";
+import withReactContent from "sweetalert2-react-content";
+import BooleanIcon from "./BooleanIcon";
+import ScoreTable from "./ScoreTable";
+import calculateScore from "./calculateScore";
 
 const useStyles = makeStyles((theme) => ({
   "@global": {
@@ -66,44 +71,9 @@ function App() {
     setInitialized(true);
   }, []);
 
-  const calculatedScores = scores.map((score) => {
-    const seuil = {
-      0: 56,
-      1: 51,
-      2: 41,
-      3: 36,
-    }[score.bouts];
-
-    const reussie = score.points >= seuil ? 1 : -1;
-
-    const base = 25;
-    const multiplicateurContrat = {
-      petite: 1,
-      garde: 1,
-      "garde-sans": 1,
-      "garde-contre": 1,
-    }[score.contrat];
-
-    const ecart = Math.round(Math.abs(score.points - seuil) / 10) * 10;
-
-    const total = (base + ecart) * multiplicateurContrat;
-
-    const scoreRound = {
-      0: total * reussie * -1,
-      1: total * reussie * -1,
-      2: total * reussie * -1,
-      3: total * reussie * -1,
-      4: total * reussie * -1,
-    };
-
-    scoreRound[score.preneur] = 0;
-    scoreRound[score.appele] = 0;
-
-    scoreRound[score.preneur] += total * 2 * reussie;
-    scoreRound[score.appele] += total * reussie;
-
-    return scoreRound;
-  });
+  const calculatedScores = useMemo(() => scores.map(calculateScore), [
+    JSON.stringify(scores),
+  ]);
 
   return (
     <div className={classes.outwrapper}>
@@ -155,15 +125,16 @@ function App() {
                   {joueurs.map((e) => (
                     <TableCell>{e}</TableCell>
                   ))}
+                  <TableCell></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {calculatedScores ? (
-                  calculatedScores.map((calScore, index) => (
+                  scores.map((score, index) => (
                     <TableRow key={index}>
                       <TableCell>{index}</TableCell>
                       {joueurs.map((e, indexJoueur) => (
-                        <TableCell>
+                        <TableCell align="center">
                           {calculatedScores
                             .slice(0, index + 1)
                             .reduce((acc, e) => {
@@ -172,6 +143,34 @@ function App() {
                             }, 0)}
                         </TableCell>
                       ))}
+                      <TableCell>
+                        <IconButton
+                          color="primary"
+                          onClick={() => {
+                            withReactContent(Swal).fire({
+                              html: (
+                                <div>
+                                  <p>Preneur : {joueurs[score.preneur]}</p>
+                                  <p>Appelé : {joueurs[score.appele]}</p>
+                                  <p>
+                                    Contrat : {score.contrat}{" "}
+                                    <BooleanIcon
+                                      style={{ marginBottom: "-0.3rem" }}
+                                      checked={score.reussie}
+                                    />
+                                  </p>
+                                  <ScoreTable
+                                    roundScores={calculatedScores[index]}
+                                    joueurs={joueurs}
+                                  />
+                                </div>
+                              ),
+                            });
+                          }}
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
